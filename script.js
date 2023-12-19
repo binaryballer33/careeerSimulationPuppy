@@ -1,7 +1,9 @@
 // Use the API_URL variable to make fetch requests to the API.
 // Replace the placeholder with your cohort name (ex: 2109-UNF-HY-WEB-PT)
-const cohortName = "YOUR COHORT NAME HERE";
+const cohortName = "2311-fsa-et-web-ft-sf";
 const API_URL = `https://fsa-puppy-bowl.herokuapp.com/api/${cohortName}`;
+const main = document.getElementById("main");
+const newPlayerForm = document.getElementById("new-player-form");
 
 /**
  * Fetches all players from the API.
@@ -9,7 +11,11 @@ const API_URL = `https://fsa-puppy-bowl.herokuapp.com/api/${cohortName}`;
  */
 const fetchAllPlayers = async () => {
   try {
-    // TODO
+    const players = await fetch(`${API_URL}/players`)
+    const playersJSON = await players.json()
+    const playersData = await playersJSON.data
+    const playersList = playersData.players
+    return playersList
   } catch (err) {
     console.error("Uh oh, trouble fetching players!", err);
   }
@@ -22,7 +28,9 @@ const fetchAllPlayers = async () => {
  */
 const fetchSinglePlayer = async (playerId) => {
   try {
-    // TODO
+    let response = await fetch(`${API_URL}/players/${playerId}`)
+    let player = await response.json()
+    return player
   } catch (err) {
     console.error(`Oh no, trouble fetching player #${playerId}!`, err);
   }
@@ -35,7 +43,16 @@ const fetchSinglePlayer = async (playerId) => {
  */
 const addNewPlayer = async (playerObj) => {
   try {
-    // TODO
+    const response = await fetch(`${API_URL}/players/`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(playerObj),
+    }
+  );
+  const result = await response.json();
+  return result;
   } catch (err) {
     console.error("Oops, something went wrong with adding that player!", err);
   }
@@ -47,7 +64,13 @@ const addNewPlayer = async (playerObj) => {
  */
 const removePlayer = async (playerId) => {
   try {
-    // TODO
+    const response = await fetch(`${API_URL}/players/${playerId}`, {
+        method: 'DELETE',
+        headers: {'Content-Type': 'application/json',}
+      }
+    );
+    const result = await response.json();
+    return result;
   } catch (err) {
     console.error(
       `Whoops, trouble removing player #${playerId} from the roster!`,
@@ -76,7 +99,41 @@ const removePlayer = async (playerId) => {
  * @param {Object[]} playerList - an array of player objects
  */
 const renderAllPlayers = (playerList) => {
-  // TODO
+  main.innerHTML = `
+    <h2>All Players</h2>
+    <div class="grid-cards">
+      ${playerList.length === 0 ? "<p>No players yet!</p>" : playerList.map(player => {
+        return `
+          <div class="card grid-card-item" style="width: 18rem;">
+            <img src="${player.imageUrl}" class="card-img-top grid-card-image" alt="player image: ${player.name}">
+            <div class="card-body">
+              <h5 class="card-title">${player.name}</h5>
+              <p class="card-text">Position: ${player.status}</p>
+              <p class="card-text">Id: ${player.id}</p>
+              <a href="#" class="btn btn-primary seeDetails">See details</a>
+              <a href="#" class="btn btn-primary removePlayer">Remove Player</a>
+            </div>
+          </div>
+        `
+      }).join('')}}
+    </div>
+  `
+  const seeDetailsHtmlCollection = document.getElementsByClassName("seeDetails");
+  var seeDetailsButtonArray = Array.prototype.slice.call(seeDetailsHtmlCollection); // converts a htmlCollection to an array
+  const removePlayerHtmlCollection = document.getElementsByClassName("removePlayer");
+  var removePlayerButtonArray = Array.prototype.slice.call(removePlayerHtmlCollection); // converts a htmlCollection to an array
+
+  seeDetailsButtonArray.map(button => button.addEventListener("click", async (event) => {
+    const id = event.target.parentNode.children[2].innerText.split(":")[1].trim(" ");
+    const player = await fetchSinglePlayer(id);
+    renderSinglePlayer(player);
+  }));
+
+  removePlayerButtonArray.map(button => button.addEventListener("click", async (event) => {
+    const id = event.target.parentNode.children[2].innerText.split(":")[1].trim(" ");
+    const player = await removePlayer(id);
+    renderAllPlayers(player);
+  }));
 };
 
 /**
@@ -93,7 +150,28 @@ const renderAllPlayers = (playerList) => {
  * @param {Object} player an object representing a single player
  */
 const renderSinglePlayer = (player) => {
-  // TODO
+  const thePlayer = player.data.player
+  
+  main.innerHTML = `
+    <h2>Player Details</h2>
+    <div class="card" style="width: 18rem;">
+      <img src="${thePlayer.imageUrl}" class="card-img-top" alt="thePlayer image: ${thePlayer.name}">
+      <div class="card-body">
+        <h5 class="card-title">${thePlayer.name}</h5>
+        <p class="card-text">Id: ${thePlayer.id}</p>
+        <p class="card-text">Breed: ${thePlayer.breed}</p>
+        <a href="#" class="btn btn-primary" id="backToAllPlayers">Back to all players</a>
+      </div>
+    </div>
+  `
+  const backToAllPlayers = document.getElementById("backToAllPlayers");
+
+  backToAllPlayers.addEventListener("click", async (event) => {
+    event.preventDefault();
+    const players = await fetchAllPlayers();
+    renderAllPlayers(players);
+  })
+
 };
 
 /**
@@ -102,11 +180,40 @@ const renderSinglePlayer = (player) => {
  * and then render all players to the DOM.
  */
 const renderNewPlayerForm = () => {
-  try {
-    // TODO
-  } catch (err) {
-    console.error("Uh oh, trouble rendering the new player form!", err);
-  }
+  const newPlayerForm = document.getElementById("new-player-form");
+  newPlayerForm.innerHTML = `
+    <div class="mb-3">
+    <label for="name" class="form-label">Player Name</label>
+    <input type="text" class="form-control" id="name" placeholder="Enter player name">
+    </div>
+    <div class="mb-3">
+      <label for="breed" class="form-label">Player Breed</label>
+      <input type="text" class="form-control" id="breed" placeholder="Enter player breed">
+    </div>
+    <div class="mb-3">
+      <label for="imageUrl" class="form-label">Player Image URL</label>
+      <input type="text" class="form-control" id="imageUrl" placeholder="Enter player image URL">
+    </div>
+    <div class="mb-3">
+      <label for="status" class="form-label">Player Status</label>
+      <input type="text" class="form-control" id="status" placeholder="Enter player status">
+    </div>
+    <button type="submit" class="btn btn-primary" id="addNewPlayer">Add New Player</button>
+  `
+  const addNewPlayerButton = document.getElementById("addNewPlayer");
+
+  addNewPlayerButton.addEventListener("click", async (event) => {
+    event.preventDefault();
+    const name = document.getElementById("name").value;
+    const breed = document.getElementById("breed").value;
+    const imageUrl = document.getElementById("imageUrl").value;
+    const status = document.getElementById("status").value;
+    const playerObj = {name, breed, imageUrl, status};
+    const newPlayer = await addNewPlayer(playerObj);
+    const players = await fetchAllPlayers();
+    renderAllPlayers(players);
+    return newPlayer;
+  })
 };
 
 /**
@@ -135,3 +242,5 @@ if (typeof window === "undefined") {
 } else {
   init();
 }
+
+
